@@ -2,7 +2,9 @@
 import axios from "axios";
 
 const API = axios.create({
-  baseURL: "https://tasknova-99o4.onrender.com/api",
+  baseURL: import.meta.env.DEV
+    ? "http://localhost:5000/api"
+    : "https://tasknova-99o4.onrender.com/api",
 });
 
 API.interceptors.request.use(

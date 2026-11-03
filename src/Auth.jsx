@@ -90,15 +90,44 @@ export default function Auth({ onLogin }) {
         localStorage.setItem("tasknova-user", JSON.stringify(user));
         onLogin?.(user);
       }
-    } catch (err) {
-      setError(
-        err.response?.data?.message ||
-          err.message ||
-          "Something went wrong. Please try again."
-      );
-    } finally {
-      setLoading(false);
-    }
+    
+
+} catch (err) {
+  const errorMessage =
+    err.response?.data?.message ||
+    err.message ||
+    "Something went wrong. Please try again.";
+
+  const requiresVerification =
+    err.response?.data?.requiresVerification === true;
+
+  const lowerMessage = errorMessage.toLowerCase();
+
+  const shouldVerify =
+  requiresVerification ||
+  (
+    (mode === "register" || mode === "login") &&
+    (
+      lowerMessage.includes("request a new verification code") ||
+      lowerMessage.includes("account was created") ||
+      lowerMessage.includes("verify your email")
+    )
+  );
+
+  if (shouldVerify) {
+    setMode("verify");
+    setCode("");
+    setError("");
+    setMessage(
+      "Your account is not verified. Enter your verification code or request a new one."
+    );
+  } else {
+    setError(errorMessage);
+  }
+} finally {
+  setLoading(false);
+}
+
   };
 
   const handleResend = async () => {

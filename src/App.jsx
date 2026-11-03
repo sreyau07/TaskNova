@@ -178,32 +178,43 @@ const visibleTasks = tasks
 
   const tomorrow = new Date(today);
   tomorrow.setDate(tomorrow.getDate() + 1);
+function getDeadlineStatus(task) {
+  if (!task.deadline || task.completed) return "";
 
-  function getDeadlineStatus(task) {
-    if (!task.deadline || task.completed) return "";
+  const deadline = new Date(task.deadline);
 
-    const deadline = new Date(task.deadline);
+  if (Number.isNaN(deadline.getTime())) return "";
 
-    if (Number.isNaN(deadline.getTime())) return "";
+  const today = new Date();
+  today.setHours(0, 0, 0, 0);
 
-    const deadlineDay = new Date(deadline);
-    deadlineDay.setHours(0, 0, 0, 0);
+  const deadlineDay = new Date(
+    deadline.getFullYear(),
+    deadline.getMonth(),
+    deadline.getDate()
+  );
 
-    if (deadlineDay.getTime() < today.getTime()) {
-      return "Overdue";
-    }
+  const tomorrow = new Date(today);
+  tomorrow.setDate(today.getDate() + 1);
 
-    if (deadlineDay.getTime() === today.getTime()) {
-      return "Due Today";
-    }
-
-    if (deadlineDay.getTime() === tomorrow.getTime()) {
-      return "Due Tomorrow";
-    }
-
-    return "";
+  if (deadlineDay.getTime() < today.getTime()) {
+    return "Overdue";
   }
 
+  if (deadlineDay.getTime() === today.getTime()) {
+    return "Due Today";
+  }
+
+  if (deadlineDay.getTime() === tomorrow.getTime()) {
+    return "Due Tomorrow";
+  }
+
+  const daysLeft = Math.round(
+    (deadlineDay.getTime() - today.getTime()) / (1000 * 60 * 60 * 24)
+  );
+
+  return `Due in ${daysLeft} days`;
+}
   const reminderTasks = tasks
     .filter((task) => getDeadlineStatus(task) !== "")
     .sort(

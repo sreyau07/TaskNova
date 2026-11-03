@@ -38,31 +38,31 @@ function publicUser(user) {
   };
 }
 
-function getEmailTransporter() {
-  if (!process.env.EMAIL_USER || !process.env.EMAIL_APP_PASSWORD) {
-    throw new Error("Email service is not configured.");
-  }
 
-  return nodemailer.createTransport({
-    service: "gmail",
-    auth: {
-      user: process.env.EMAIL_USER,
-      pass: process.env.EMAIL_APP_PASSWORD,
-    },
-  });
-}
+
+const transporter = nodemailer.createTransport({
+  service: "gmail",
+  auth: {
+    user: process.env.EMAIL_USER,
+    pass: process.env.EMAIL_APP_PASSWORD,
+  },
+});
 
 async function sendCodeEmail(email, subject, code, purpose) {
-  const transporter = getEmailTransporter();
-
-  await transporter.sendMail({
+  const mailOptions = {
     from: `"TaskNova" <${process.env.EMAIL_USER}>`,
     to: email,
-    subject,
+    subject: subject,
     text:
       `Your TaskNova ${purpose} code is ${code}.\n\n` +
       "This code expires in 10 minutes. Do not share it with anyone.",
-  });
+  };
+
+  const info = await transporter.sendMail(mailOptions);
+
+  console.log("Email sent successfully:", info.messageId);
+
+  return info;
 }
 
 // REGISTER

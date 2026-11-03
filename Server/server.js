@@ -1,10 +1,12 @@
+require("dotenv").config();
 const authRoutes = require("./routes/AuthRoutes");
 const express = require("express");
 const cors = require("cors");
 const taskRoutes = require("./routes/TaskRoutes");
 const connectDB = require("./config/db");
 const profileRoutes = require("./routes/ProfileRoutes");
-require("dotenv").config();
+
+
 
 
 const app = express();
@@ -12,6 +14,10 @@ const app = express();
 app.use(cors());
 app.use(express.json());
 app.use("/api/auth", authRoutes);
+app.use((req, res, next) => {
+  console.log("REQUEST:", req.method, req.url);
+  next();
+});
 app.use("/api/tasks", taskRoutes);
 app.use("/api/profile", profileRoutes);
 
