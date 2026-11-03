@@ -20,41 +20,68 @@ function NotificationCenter({ tasks = [] }) {
   const tomorrow = new Date(today);
   tomorrow.setDate(tomorrow.getDate() + 1);
 
-  function getStatus(task) {
-    const deadline = new Date(task.deadline);
-    const deadlineDay = new Date(deadline);
-    deadlineDay.setHours(0, 0, 0, 0);
+ 
+function getStatus(task) {
+  if (!task.deadline) return "";
 
-    if (deadlineDay < today) return "Overdue";
-    if (deadlineDay.getTime() === today.getTime()) return "Due Today";
-    return "Due Tomorrow";
+  const deadline = new Date(task.deadline);
+
+  if (Number.isNaN(deadline.getTime())) return "";
+
+  const today = new Date();
+  today.setHours(0, 0, 0, 0);
+
+  const deadlineDay = new Date(
+    deadline.getFullYear(),
+    deadline.getMonth(),
+    deadline.getDate()
+  );
+
+  if (deadlineDay.getTime() < today.getTime()) {
+    return "Overdue";
   }
+
+  if (deadlineDay.getTime() === today.getTime()) {
+    return "Due Today";
+  }
+
+  const daysLeft = Math.round(
+    (deadlineDay.getTime() - today.getTime()) /
+      (1000 * 60 * 60 * 24)
+  );
+
+  if (daysLeft === 1) return "Due Tomorrow";
+
+  return `Due in ${daysLeft} days`;
+}
+
 
   const reminders = tasks
     .filter((task) => {
       if (!task.deadline || task.completed) return false;
 
       const status = getStatus(task);
-
-      return (
-        status === "Overdue" ||
-        status === "Due Today" ||
-        status === "Due Tomorrow"
-      );
+return status !== "";
     })
     .sort((a, b) => new Date(a.deadline) - new Date(b.deadline));
 
-  const filteredReminders =
-    activeFilter === "All"
-      ? reminders
-      : reminders.filter((task) => getStatus(task) === activeFilter);
+ const filteredReminders =
+  activeFilter === "All"
+    ? reminders
+    : activeFilter === "Upcoming"
+    ? reminders.filter((task) => {
+        const status = getStatus(task);
+        return status.startsWith("Due in ");
+      })
+    : reminders.filter((task) => getStatus(task) === activeFilter);
 
-  const counts = {
-    All: reminders.length,
-    Overdue: reminders.filter((task) => getStatus(task) === "Overdue").length,
-    "Due Today": reminders.filter((task) => getStatus(task) === "Due Today").length,
-    "Due Tomorrow": reminders.filter((task) => getStatus(task) === "Due Tomorrow").length,
-  };
+const counts = {
+  All: reminders.length,
+  Overdue: reminders.filter((task) => getStatus(task) === "Overdue").length,
+  "Due Today": reminders.filter((task) => getStatus(task) === "Due Today").length,
+  "Due Tomorrow": reminders.filter((task) => getStatus(task) === "Due Tomorrow").length,
+  Upcoming: reminders.filter((task) => getStatus(task).startsWith("Due in ")).length,
+};
 
   function getIcon(status) {
     if (status === "Overdue") return <FiAlertCircle />;
@@ -78,7 +105,7 @@ function NotificationCenter({ tasks = [] }) {
       </div>
 
       <div className="notification-filters">
-        {["All", "Overdue", "Due Today", "Due Tomorrow"].map((filter) => (
+        {["All", "Overdue", "Due Today", "Due Tomorrow", "Upcoming"].map((filter) => (
           <button
             type="button"
             key={filter}

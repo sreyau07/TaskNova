@@ -2,7 +2,7 @@
 const express = require("express");
 const bcrypt = require("bcryptjs");
 const jwt = require("jsonwebtoken");
-const nodemailer = require("nodemailer");
+const { google } = require("googleapis");
 const crypto = require("crypto");
 const User = require("../models/User");
 
@@ -38,33 +38,51 @@ function publicUser(user) {
   };
 }
 
+const oauth2Client = new google.auth.OAuth2(
+  process.env.GOOGLE_CLIENT_ID,
+  process.env.GOOGLE_CLIENT_SECRET,
+  process.env.GOOGLE_REDIRECT_URI
+);
 
+oauth2Client.setCredentials({
+  refresh_token: process.env.GOOGLE_REFRESH_TOKEN,
+});
 
-const transporter = nodemailer.createTransport({
-  service: "gmail",
-  auth: {
-    user: process.env.EMAIL_USER,
-    pass: process.env.EMAIL_APP_PASSWORD,
-  },
+const gmail = google.gmail({
+  version: "v1",
+  auth: oauth2Client,
 });
 
 async function sendCodeEmail(email, subject, code, purpose) {
-  const mailOptions = {
-    from: `"TaskNova" <${process.env.EMAIL_USER}>`,
-    to: email,
-    subject: subject,
-    text:
-      `Your TaskNova ${purpose} code is ${code}.\n\n` +
-      "This code expires in 10 minutes. Do not share it with anyone.",
-  };
+  const message = [
+    `From: "TaskNova" <${process.env.EMAIL_USER}>`,
+    `To: ${email}`,
+    `Subject: ${subject}`,
+    "MIME-Version: 1.0",
+    "Content-Type: text/plain; charset=utf-8",
+    "",
+    `Your TaskNova ${purpose} code is ${code}.`,
+    "",
+    "This code expires in 10 minutes. Do not share it with anyone.",
+  ].join("\r\n");
 
-  const info = await transporter.sendMail(mailOptions);
+  const encodedMessage = Buffer.from(message)
+    .toString("base64")
+    .replace(/\+/g, "-")
+    .replace(/\//g, "_")
+    .replace(/=+$/, "");
 
-  console.log("Email sent successfully:", info.messageId);
+  const result = await gmail.users.messages.send({
+    userId: "me",
+    requestBody: {
+      raw: encodedMessage,
+    },
+  });
 
-  return info;
+  console.log("TaskNova email sent successfully.");
+
+  return result.data;
 }
-
 // REGISTER
 router.post("/register", async (req, res) => {
   try {
